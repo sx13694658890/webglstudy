@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <!-- 顶点着色器 -->
+    <script id="vertexShader" type="x-shader/x-vertex">
+        attribute vec4 a_Position;
+        attribute float a_PointSize;
+        uniform vec4 u_Translation;
+        uniform mat4 u_ViewMatrix;
+        attribute vec4 a_Color;
+        varying vec4 v_Color;
+        void main(){
+            
+            gl_Position=u_ViewMatrix*a_Position;
+            gl_PointSize=3.0;
+            v_Color=a_Color;
+        }
+    </script>
+    <!-- 片元着色器 -->
+    <script id="fragmentShader" type="x-shader/x-fragment">
+        precision mediump float;
+        varying vec4 v_Color;
+        void main(){
+            gl_FragColor=v_Color;    
+        }
+    </script>
+    
+    <script type="module">
+        import {initWebGL,ScaleLinear,SinFn} from "./initwebgl.js"
+        import {Color,Vector3,Matrix4 } from "./js/three.js"
+        import Poly from "./Poly.js"
+        const canvas=document.querySelector("#canvas");
+        canvas.width=window.innerWidth
+        canvas.height=window.innerHeight
+        const  gl=canvas.getContext("webgl");
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+
+        const vertex=document.getElementById("vertexShader").innerText;
+        const fragment=document.getElementById("fragmentShader").innerText;
+        
+        initWebGL(gl,vertex,fragment)
+        gl.clearColor(0.1, 0.1,0.1,1)
+        // 底色
+        gl.clear(gl.COLOR_BUFFER_BIT)
+        const pathData=[
+            0,0.1,
+            -0.1,-0.1,
+            0.1,-0.1
+        ]
+        
+        const [minPosX,maxPosX,minPosZ,maxPosZ]=[-0.7,0.8,-1,1]
+        const [minAngX,maxAngX,minAngZ,maxAngZ]=[0,Math.PI*4,0,Math.PI*2]
+
+        const scalerX=ScaleLinear(minPosX,minAngX,maxPosX,maxAngX)
+        const scalerZ=ScaleLinear(minPosZ,minAngZ,maxPosZ,maxAngZ)
+
+       const [a1,a2]=[0.1,0.03]
+       const a12=a1+a2
+
+       const [minY,maxY]=[-a12,a12]
+       const [minH,maxH]=[0.01,0.9]
+       const scalerC=ScaleLinear(minY,minH,maxY,maxH)
+       const color=new Color()
+        const [rows,cols]=[30,30]
+        const a_Position={size:3,index:0}
+        const a_Color={size:4,index:3}
+        const categorySize=a_Position.size+a_Color.size
+        const getInd=GetIndexGrid(cols,categorySize)
+        const viewMatrix=new Matrix4().lookAt(
+        new Vector3(0.2, 0.7, 1),
+        new Vector3(),
+        new Vector3(0, 1, 0))
+        const rect=new Poly({
+            gl,
+            categorySize,
+            source:getSource(crtVertices().source,crtVertices().indexs,categorySize),
+            types:["LINES",'TRIANGLES'],
+            size:3,
+            u_IsPOINTS:false,
+            uniforms:{
+                u_ViewMatrix:{
+                    type:"uniformMatrix4fv",
+                    value:viewMatrix.elements
+                }
+            },
+            attributes:{
+                a_Position,
+                a_Color
+            }
+        }) 
+        rect.draw()
+
+         /* 动画:偏移phi */
+    let offset = 0
+    !(function ani() {
+      offset += 0.04
+      updateVertices(offset)
+      
+      rect.updateAttribute()
+      rect.draw()
+      requestAnimationFrame(ani)
+    })()
+
+    function crtVertices(){
+            const source=[]
+            const indexs=[]
+            const spaceZ=(maxPosZ-minPosZ)/rows
+            const spaceX=(maxPosX-minPosX)/cols
+
+            for(let z=0;z<rows;z++){
+                for(let x=0;x<cols;x++){
+                   const px=x*spaceX+minPosX;
+                   const pz=z*spaceZ+minPosZ;
+                   source.push(px,0,pz,1,1,1,1)
+                   if(z&&x){
+                    const [x0,z0]=[x-1,z-1]
+                    indexs.push(
+                        getInd(x0,z0),
+                        getInd(x,z0),
+                        getInd(x,z),
+                        getInd(x0,z0),
+                        getInd(x,z),
+                        getInd(x0,z),
+                        
+                        )
+                   }
+                }
+            }
+            return {source,indexs}
+        }
+        
+        function updateVertices(offset=0){
+           let {source,categorySize}=rect
+            for(let i=0;i<source.length;i+=categorySize){
+                const [posX,posZ]=[source[i],source[i+2]]
+                const angZ=scalerZ(posZ)
+                const Omega=2
+                const a=Math.sin(angZ)*0.1+0.03
+                // const phi=0
+                const phi=scalerX(posX)+offset
+                const y=SinFn(a,Omega,phi)(angZ)
+                source[i+1]=y
+                const H= scalerC(y)
+                const {r,g,b}=color.setHSL(H,0.5,0.5)
+                source[i+3]=r
+                source[i+4]=g
+                source[i+5]=b
+            }
+        }
+       
+        function GetIndexGrid(w,size){
+            return function(x,y){
+                return (y*w+x)*size
+            }
+        }
+        function getSource(vertices,indexs,categorySize){
+            const arr=[]
+            indexs.forEach((i)=> {
+                arr.push(...vertices.slice(i,i+categorySize))
+            });
+            return arr
+        } 
+    </script>
+</body>
+</html>

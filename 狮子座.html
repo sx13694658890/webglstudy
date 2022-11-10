@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Document</title>
+    </head>
+    <body>
+        <canvas id="canvas"></canvas>
+        <!-- 顶点着色器 -->
+        <script id="vertexShader" type="x-shader/x-vertex">
+        attribute vec4 a_Position;
+        attribute float a_PointSize;
+        varying float v_Alpha;
+        void main(){
+            gl_Position=vec4(a_Position.x,a_Position.y,0.0,1.0);
+            gl_PointSize=a_Position.z;
+            v_Alpha=a_Position.w
+        }
+     </script> 
+        <!-- 片元着色器 -->
+        <script id="fragmentShader" type="x-shader/x-fragment">
+        precision mediump float;
+        varying float v_Alpha;
+        void main(){
+                float dist=distance(gl_PointCoord,vec2(0,5,0.5));
+                if(dist<0.5){
+                    gl_FragColor=vec4(0.87,0.91,1.0,v_Alpha);
+                }else{
+                    discard;
+                } 
+        }
+
+    </script>
+      
+        <script type="module">
+
+        import {initWebGL} from "./initwebgl.js"
+        import Poly from "./Poly.js"
+        import Sky from "./Sky.js"
+        import  Track from "./Track.js"
+        import Compose from "./Compose.js"
+        const canvas=document.querySelector("#canvas");
+        canvas.width=window.innerWidth
+        canvas.height=window.innerHeight
+        const  gl=canvas.getContext("webgl");
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+
+        const vertex=document.getElementById("vertexShader").innerText;
+        const fragment=document.getElementById("fragmentShader").innerText;
+        
+        initWebGL(gl,vertex,fragment)
+        gl.clearColor(0.1, 0.1,0.1,1)
+
+        gl.clear(gl.COLOR_BUFFER_BIT)
+
+        //夜空
+const sky=new Sky(gl)
+
+const compose=new Compose()
+
+//当前正在绘制的多边形
+
+
+let poly=null
+
+let point=null // 鼠标画上的点
+
+//取消右击提示
+canvas.oncontextmenu = function(){
+    return false;
+}
+// 鼠标点击事件
+canvas.addEventListener("mousedown", (event) => {
+    console.log(event);
+    if(event.button===2){
+        popVertice()
+    }else{
+        const {x,y}=getMousePosInWebgl(event,canvas)
+        if(poly){
+          
+            addVertice(x,y)
+        }else{
+            crtPoly(x,y)
+        }
+    }
+    render()
+});
+//鼠标移动
+canvas.addEventListener("mousemove", (event) => {
+    const {x,y}=getMousePosInWebgl(event,canvas)
+    const point=hoverPoint(x,y)
+
+    if(poly){
+       
+        poly.setVertice(poly.count-1,x,y)
+        render()
+    }
+});
+function  addVertice(x,y){
+    const { geoData }=poly
+    if(point){
+        geoData[getData.length-1]=point
+    }
+    let obj={x,y,pointSize:random(),alpha:1}
+    geoData.push(obj)
+    crtTrack(obj)
+}
+//删除最后一个顶点
+function popVertice(){
+   poly.geoData.pop()
+   compose.children.pop()
+    poly=null
+}
+//创建多边形
+function crtPoly(x,y){
+    let o1=point?point:{x,y,pointSize:random(),alpha:1},
+    o2={x,y,pointSize:random(),alpha:1}
+    poly=new Poly({
+        size:4,
+        attrName:"a_Position",
+        getData:[o1,o2],
+        types:['POINTS','LINE_STRIP']
+    })
+    sky.add(poly)
+    crtTrack(o1)
+    crtTrack(o2)
+}
+// 渲染方法
+function render(){
+    gl.clear(gl.COLOR_BUFFER_BIT)
+    sky.draw()
+}
+
+!(function ani(){
+    compose.update(new Date())
+    sky.updateVertices(["x","y",'pointSize','alpha',])
+    render()
+    requestAnimationFrame(ani)
+})();
+function getMousePosInWebgl(event,canvas){
+
+    const {left,top,width,height}=canvas.getBoundingClientRect();
+    const [ cssX,cssY ]=[event.clientX-left,event.clientY-top];
+
+    //  坐标原点位置差异
+    const [ halfWidth,halfHeight ]=[width/2,height/2];
+    const [ xBaseCenter,yBaseCenter ]=[cssX-halfWidth,cssY-halfHeight];
+    
+    // y 方向的差异
+    const yBaseCenterTop=-yBaseCenter;
+
+    // 坐标基底差异
+    const [x,y]=[xBaseCenter/halfWidth,yBaseCenterTop/halfHeight];
+            
+    return {x,y}
+
+
+}
+
+function crtTrack(obj){
+    const {pointSize}=obj;
+    const track=new Track(obj)
+    track.start=new Date()
+    track.timeLen=2000
+    track.loop=true
+    track.keyMap=new Map([
+        [
+            'pointSize',
+            [
+                [500,pointSize],
+                [1000,0],
+                [1500,pointSize],
+            ]
+        ],
+        [
+            'alpha',
+            [
+                [500,1],
+                [1000,0],
+                [1500,1],
+            ]
+        ],
+    ])
+}     
+
+function hoverPoint(mx,my){
+    for(let {geoData} of shy.children){
+        for(let obj of geoData){
+            if(poly && obj===poly.geoData[poly.getData.length-1]){
+                containue
+            }
+            const delta={
+                x:mx-obj.x,
+                y:my-obj.y
+            }
+            const {x,y}=glToCssPos(delta,canvas)
+            const dist=x*x+y*y;
+            if(dist<100){
+                return obj
+            }
+        }
+    }
+    return null
+}
+
+function glToCssPos({x,y},{width,height}){
+    const [halfwidth,halfHeight]=[width/2,height/2]
+    return {
+        x:x*halfWidth,
+        y:y*halfHeight
+    }
+}
+
+function random(){
+    return Math.random()*8+3
+}
+    </script>
+    </body>
+</html>

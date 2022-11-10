@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <!-- 顶点着色器 -->
+    <script id="vertexShader" type="x-shader/x-vertex">
+        attribute vec4 a_Position;
+        attribute float a_PointSize;
+        uniform vec4 u_Translation;
+       
+        uniform mat4 u_Modelmatrix;
+        uniform mat4 u_ViewMatrix;
+       
+        void main(){
+            
+            gl_Position=u_ViewMatrix*u_Modelmatrix*a_Position;
+            
+        }
+    </script>
+    <!-- 片元着色器 -->
+    <script id="fragmentShader" type="x-shader/x-fragment">
+        precision mediump float;
+        void main(){
+            gl_FragColor=vec4(1.0,1.0,0.0,1);    
+        }
+    </script>
+    
+    <script type="module">
+        import {initWebGL} from "./initwebgl.js"
+        import Poly from "./Poly.js"
+        const canvas=document.querySelector("#canvas");
+        canvas.width=window.innerWidth
+        canvas.height=window.innerHeight
+        const  gl=canvas.getContext("webgl");
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+
+        const vertex=document.getElementById("vertexShader").innerText;
+        const fragment=document.getElementById("fragmentShader").innerText;
+        
+        initWebGL(gl,vertex,fragment)
+        gl.clearColor(0.1, 0.1,0.1,1)
+        // 底色
+        gl.clear(gl.COLOR_BUFFER_BIT)
+        const verticeLib=[
+        1.0 , 1.0  ,1.0,
+        -1.0, 1.0   ,1.0,
+        -1.0, -1.0  ,1.0,
+        1.0 , -1.0 ,1.0,
+        1.0 , -1.0 ,-1.0,
+        1.0 , 1.0  ,-1.0,
+        -1.0, 1.0   ,-1.0,
+        -1.0, -1.0   ,-1.0
+      ]
+     
+
+    const indices = [
+      0, 1,
+      1, 2,
+      2, 3,
+      3, 0,
+
+      0, 5,
+      1, 6,
+      2, 7,
+      3, 4,
+
+      4, 5,
+      5, 6,
+      6, 7,
+      7, 4
+    ];
+
+    const arr = [];
+    indices.forEach(n => {
+      const i = n * 3
+      arr.push(
+        verticeLib[i] / 5,
+        verticeLib[i + 1] / 5,
+        verticeLib[i + 2] / 5,
+      )
+    })
+        const rect=new Poly({
+            gl,
+            vertices:arr,
+            types:['LINES'],
+            size:3,
+            
+            u_IsPOINTS:false
+        }) 
+        rect.modelmatrix()
+       
+    </script>
+</body>
+</html>

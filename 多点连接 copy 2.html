@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <!-- 顶点着色器 -->
+    <script id="vertexShader" type="x-shader/x-vertex">
+        attribute vec4 a_Position;
+        attribute float a_PointSize;
+        uniform vec4 u_Translation;
+       
+        uniform float u_SinB;
+        uniform float u_CosB;
+        uniform float u_Scale;
+        uniform mat4 u_Matrix;
+        float tx=0.5;
+        float ty=0.5;
+        float tz=0.3;
+        float sx=0.6;
+        float sy=0.1 ;
+        float sz=0.8;
+        mat4 m4=u_Matrix;
+        void main(){
+            
+            gl_Position=a_Position*u_Matrix;
+            
+        }
+    </script>
+    <!-- 片元着色器 -->
+    <script id="fragmentShader" type="x-shader/x-fragment">
+        precision mediump float;
+        void main(){
+            gl_FragColor=vec4(1.0,1.0,0.0,1);    
+        }
+    </script>
+    
+    <script type="module">
+        import {initWebGL} from "./initwebgl.js"
+        import Poly from "./Poly.js"
+        const canvas=document.querySelector("#canvas");
+        canvas.width=window.innerWidth
+        canvas.height=window.innerHeight
+        const  gl=canvas.getContext("webgl");
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+
+        const vertex=document.getElementById("vertexShader").innerText;
+        const fragment=document.getElementById("fragmentShader").innerText;
+        
+        initWebGL(gl,vertex,fragment)
+        gl.clearColor(0.1, 0.1,0.1,1)
+        // 底色
+        gl.clear(gl.COLOR_BUFFER_BIT)
+        const pathData=[
+            0,0.1,
+            -0.1,-0.1,
+            0.1,-0.1
+        ]
+        
+      
+        
+        const rect=new Poly({
+            gl,
+            vertices:pathData,
+            types:['TRIANGLES'],
+            size:2,
+            u_IsPOINTS:false
+        }) 
+        rect.matrix()
+        // let x=0.1
+        // !(function run(){
+        //     x+=0.02
+        //     if(x>10){
+        //         x=0
+        //     }
+        //     rect.rotate(x)
+        //     requestAnimationFrame(run)
+        // })()
+       
+       
+        
+    </script>
+</body>
+</html>

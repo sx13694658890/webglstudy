@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <!-- 顶点着色器 -->
+    <script id="vertexShader" type="x-shader/x-vertex">
+        attribute vec4 a_Position;
+        attribute float a_PointSize;
+
+        void main(){
+            gl_Position=a_Position;
+            gl_PointSize=10.0;
+        }
+    </script>
+
+    <!-- 片元着色器 -->
+    <script id="fragmentShader" type="x-shader/x-fragment">
+        precision mediump float;
+        uniform bool u_IsPOINTS;
+        void main(){
+         if(u_IsPOINTS){
+            float dist=distance(gl_PointCoord,vec2(0.5,0.5))
+            if(dist<0.5){
+                gl_FragColor=vec4(1.0,1.0,0.0,1);
+            }else{
+                discard
+            }
+         }else{
+            gl_FragColor=vec4(1.0,1.0,0.0,1);
+         }
+              
+            
+        }
+
+    </script>
+    
+    <script type="module">
+
+        import {initWebGL} from "./initwebgl.js"
+        import Poly from "./Poly.js"
+        const canvas=document.querySelector("#canvas");
+        canvas.width=window.innerWidth
+        canvas.height=window.innerHeight
+        const  gl=canvas.getContext("webgl");
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+
+        const vertex=document.getElementById("vertexShader").innerText;
+        const fragment=document.getElementById("fragmentShader").innerText;
+        
+        initWebGL(gl,vertex,fragment)
+        gl.clearColor(0.1, 0.1,0.1,1)
+        // 底色
+        gl.clear(gl.COLOR_BUFFER_BIT)
+        const pathData=[
+            0,0,
+            0,600,
+            600,600,
+            600,200,
+            200,200,
+            200,400,
+            300,400,
+            300,300,
+            500,300,
+            500,500,
+            100,500,
+            100,100,
+            600,100,
+            600,0,
+        ]
+        
+        const ratio=canvas.width/canvas.height;
+        const rectH=1.0;
+        const rectW=rectH/ratio
+        const [halfRectW,halfRectH]=[rectW/2,rectH/2];
+
+        const minX=-halfRectW,
+              minY=-halfRectH,
+              maxX=halfRectW,
+              maxY=halfRectH;
+
+        // const rect=new Poly({
+        //     gl,
+        //     vertices:[
+        //         minX,maxY,
+        //         minX,minY,
+        //         maxX,minY,
+        //         maxX,maxY
+        //     ]
+        // })
+        // rect.draw()
+
+        const scaleX=ScaleLinear(0,minX,600,maxX)
+        const scaleY=ScaleLinear(0,maxY,600,minY)
+
+        const glData=[]
+        for(let i=0;i<pathData.length;i+=2){
+            glData.push(scaleX(pathData[i]),scaleY(pathData[i+1]))
+        }
+        
+        const path=new Poly({
+            gl,
+            vertices:glData,
+            types:['POINTS',"LINE_LOOP"]
+        })
+        path.draw()
+        function render(){
+            gl.clear(gl.COLOR_BUFFER_BIT);
+          
+        }
+        
+        function ScaleLinear(ax,ay,bx,by){
+            const delta={
+                x:bx-ax,
+                y:by-ay
+            }
+            const k=delta.y/delta.x;
+            const b=ay-ax*k
+            return function(x){
+                return k*x+b
+            }
+        }
+    </script>
+</body>
+</html>

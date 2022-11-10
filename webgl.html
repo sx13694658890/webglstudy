@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <!-- 顶点着色器 -->
+    <script id="vertexShader" type="x-shader/x-vertex">
+        attribute vec4 a_Position;
+        attribute float a_PointSize;
+
+        void main(){
+            gl_Position=a_Position;
+            
+            gl_PointSize=a_PointSize;
+        }
+    </script>
+
+    <!-- 片元着色器 -->
+    <script id="fragmentShader" type="x-shader/x-fragment">
+        precision mediump float;
+        uniform vec4 u_FragColor;
+        void main(){
+            float dist=distance(gl_PointCoord,vec2(0.5,0.5));
+            if(dist<0.5){
+                gl_FragColor=u_FragColor;
+            }else{
+                discard;
+            }
+        }
+
+    </script>
+    <script type="module">
+
+
+
+        const canvas=document.querySelector("#canvas");
+        const  gl=canvas.getContext("webgl");
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+
+
+        //获取文件属性
+        const a_Position=gl.getAttribLocation(gl.program, 'a_Position');
+
+        const starts=[]
+        // 合成对象
+        const compose=new Compose()
+
+
+
+        // 鼠标点击事件
+        canvas.addEventListener("click",function({clientX,clientY}){
+            const {left,top,widht,height}=canvas.getBoundingClientRect();
+            const [ cssX,cssY ]=[clientX-left,clientY-top];
+
+            //  坐标原点位置差异
+            const [ halfWidth,halfHeight ]=[width/2,height/2];
+            const [ xBaseCenter,yBaseCenter ]=[cssX-halfWidth,cssY-halfHeight];
+            
+            // y 方向的差异
+            const yBaseCenterTop=-yBaseCenter;
+
+            // 坐标基底差异
+            const [x,y]=[xBaseCenter/halfWidth,yBaseCenterTop/halfHeight];
+
+            const s=Math.random()*5+2;
+            const a=Math.random();
+            const obj={s,y,s,a};
+
+
+
+            // 建立轨道对象
+
+            const track=new Track(obj);
+            track.start=new Date();
+            track.timeLen=2000;
+            tranck.loop=true;
+            tranck.keyMap=new Map([
+                ["a",[
+                   [ 500,a],
+                   [ 1000,0],
+                   [ 1500,a],
+                ],],
+            ])
+            compose.add(track);
+        })
+       
+        !(function ani(){
+            compose.update(new Date())
+            render()
+            requestAnimationFrame(ani)
+        })()
+
+        function render(){
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            stars.forEach(({x,y,s,a})=>{
+                gl.vertexAttrib2f(a_Position, x, y);
+                gl.vertexAttrib1f(a_PointSize, s);
+                gl.uniform4fv(u_FragColor,new Float32Array([0.87,0.92,1,a]))
+                gl.drawArrays(gl.POINTS, 0,1);
+            })
+        }
+    </script>
+</body>
+</html>

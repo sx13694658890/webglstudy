@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <!-- 顶点着色器 -->
+    <script id="vertexShader" type="x-shader/x-vertex">
+        attribute vec4 a_Position;
+        attribute float a_PointSize;
+        uniform vec4 u_Translation;
+        uniform mat4 u_ViewMatrix;
+        attribute vec4 a_Color;
+        varying vec4 v_Color;
+        void main(){
+            
+            gl_Position=a_Position;
+            gl_PointSize=30.0;
+            v_Color=a_Color;
+        }
+    </script>
+    <!-- 片元着色器 -->
+    <script id="fragmentShader" type="x-shader/x-fragment">
+        precision mediump float;
+        
+        varying vec4 v_Color;
+        void main(){
+            gl_FragColor=v_Color;    
+        }
+    </script>
+    
+    <script type="module">
+        import {initWebGL,ScaleLinear,SinFn} from "./initwebgl.js"
+        import Poly from "./Poly.js"
+        const canvas=document.querySelector("#canvas");
+        canvas.width=window.innerWidth
+        canvas.height=window.innerHeight
+        const  gl=canvas.getContext("webgl");
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+
+        const vertex=document.getElementById("vertexShader").innerText;
+        const fragment=document.getElementById("fragmentShader").innerText;
+        
+        initWebGL(gl,vertex,fragment)
+        gl.clearColor(0.1, 0.1,0.1,1)
+        // 底色
+        gl.clear(gl.COLOR_BUFFER_BIT)
+        const pathData=[
+            0,0.2,0,0,0.1,1,1,
+            -0.2,-0.1,0,0,1,1,1,
+            0.2,-0.1,0,1,3,0,1
+        ]
+        
+       
+        const rect=new Poly({
+            gl,
+            vertices:pathData,
+            types:['TRIANGLES'],
+            size:3,
+            u_IsPOINTS:false
+        }) 
+        rect.draw()
+
+         
+
+   
+        
+    </script>
+</body>
+</html>
